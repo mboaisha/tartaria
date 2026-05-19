@@ -21,16 +21,16 @@ elif [[ "$IMAGE_FLAVOR" == "arch-nvidia" ]]; then
     readonly CACHY_PKGS
     readonly NVIDIA_PKGS
 elif [[ "$IMAGE_FLAVOR" == "cachy" ]]; then
-    KERN_PKG="cachyos/linux-cachyos"
-    CACHY_PKGS="cachyos/scx-manager cachyos/scx-scheds"
+    KERN_PKG="linux-cachyos"
+    CACHY_PKGS="scx-manager scx-scheds"
     NVIDIA_PKGS=" "
     readonly KERN_PKG
     readonly CACHY_PKGS
     readonly NVIDIA_PKGS
 elif [[ "$IMAGE_FLAVOR" == "cachy-nvidia" ]]; then
-    KERN_PKG="cachyos/linux-cachyos-nvidia-open"
-    CACHY_PKGS="cachyos/scx-manager cachyos/scx-scheds"
-    NVIDIA_PKGS="cachyos/nvidia-utils"
+    KERN_PKG="linux-cachyos-nvidia-open"
+    CACHY_PKGS="scx-manager scx-scheds"
+    NVIDIA_PKGS="nvidia-utils"
     readonly KERN_PKG
     readonly CACHY_PKGS
     readonly NVIDIA_PKGS
@@ -40,9 +40,9 @@ fi
 declare -a packages=(
     # ========> system
     base
+    bootc/bootc
     bootc/uupd
     $KERN_PKG
-    chaotic-aur/bootc
     cpio
     dbus
     dbus-glib
@@ -71,6 +71,7 @@ declare -a packages=(
     openssh
     powertop
     python3
+    rsync
     tar
     unzip
     vim
@@ -107,7 +108,6 @@ declare -a packages=(
     iio-sensor-proxy
     lm_sensors
     libva-intel-driver
-    libva-mesa-driver
     $NVIDIA_PKGS
     vpl-gpu-rt
     vulkan-icd-loader
@@ -145,6 +145,7 @@ declare -a packages=(
     udisks2
 
     # ========> containers
+    crun
     distrobox
     docker
     docker-buildx
@@ -188,12 +189,6 @@ declare -a packages=(
     accountsservice
     archlinux-xdg-menu
     brightnessctl
-    cage
-    chaotic-aur/bibata-cursor-theme
-    chaotic-aur/darkly-qt6-git
-    chaotic-aur/matugen-git
-    chaotic-aur/noctalia-shell
-    chaotic-aur/opentabletdriver
     chezmoi
     cliphist
     dgop
@@ -209,7 +204,6 @@ declare -a packages=(
     orca
     orchis-theme
     polkit-kde-agent
-    quickshell
     shared-mime-info
     tuned
     tuned-ppd
@@ -222,26 +216,32 @@ declare -a packages=(
 
     # ========> applications
     ark
-    chaotic-aur/bazaar-git
-    chaotic-aur/distroshelf
-    chaotic-aur/qt6ct-kde
-    chaotic-aur/valent-git
-    chaotic-aur/zen-browser-bin
+    baobab
+    bazaar
     $CACHY_PKGS
     decibels
     flatseal
     frameworkintegration
+    gnome-calculator
+    gnome-calendar
+    gnome-music
     gnome-text-editor
+    gnome-weather
     gpu-screen-recorder
     hplip
+    impression
     kitty
     loupe
     mission-center
     nautilus
+    papers
+    secrets
     showtime
     sysprof
+    thunderbird
 )
 
 # install packages in one go
 pacman -Sy --noconfirm "${packages[@]}" >/dev/null
+pacman -Sy --noconfirm libva-mesa-driver >/dev/null
 pacman -U --noconfirm /packages/mainsys/*.pkg.tar.zst >/dev/null

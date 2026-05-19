@@ -7,8 +7,6 @@ on:
       - "v*"
   schedule:
     - cron: "05 10 * * 3,6"
-  release:
-    types: [published]
 
 env:
   IMAGE_DESC: "Arch Linux bootc image with some extra spices (stable)"
@@ -24,12 +22,20 @@ concurrency:
 
 jobs:
   build_push:
-    name: Build Tartaria (stable-${{ matrix.KERN_FLAVOR }})
+    name: Build Tartaria (stable-${{ matrix.IMAGE_FLAVOR }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        KERN_FLAVOR: [arch, cachy]
+        include:
+          - IMAGE_FLAVOR: arch
+            containerfile: ./Containerfile.arch
+          - IMAGE_FLAVOR: arch-nvidia
+            containerfile: ./Containerfile.arch
+          - IMAGE_FLAVOR: cachy
+            containerfile: ./Containerfile.cachy
+          - IMAGE_FLAVOR: cachy-nvidia
+            containerfile: ./Containerfile.cachy
 
     permissions:
       contents: read
@@ -71,9 +77,9 @@ jobs:
         id: metadata
         with:
           tags: |
-            type=raw,value=${{ env.DEFAULT_TAG }}-${{ matrix.KERN_FLAVOR }}
-            type=raw,value=${{ env.DEFAULT_TAG }}-${{ matrix.KERN_FLAVOR }}.{{date 'YYYYMMDD'}}
-            type=raw,value=${{ matrix.KERN_FLAVOR }}-{{date 'YYYYMMDD'}}
+            type=raw,value=${{ env.DEFAULT_TAG }}-${{ matrix.IMAGE_FLAVOR }}
+            type=raw,value=${{ env.DEFAULT_TAG }}-${{ matrix.IMAGE_FLAVOR }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ matrix.IMAGE_FLAVOR }}-{{date 'YYYYMMDD'}}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |
@@ -100,20 +106,19 @@ jobs:
         id: build_image
         uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2
         with:
-          containerfiles: |
-            ./Containerfile
+          containerfiles: ${{ matrix.containerfile }}
           extra-args: --skip-unused-stages=false
           image: ${{ env.IMAGE_NAME }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
-            KERN_FLAVOR=${{ matrix.KERN_FLAVOR }}
-            IMAGE_VARIANT=stable-${{ matrix.KERN_FLAVOR }}
+            IMAGE_FLAVOR=${{ matrix.IMAGE_FLAVOR }}
+            IMAGE_VARIANT=stable-${{ matrix.IMAGE_FLAVOR }}
           oci: true
 
       - name: Login to GHCR
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name != 'pull_request'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -121,7 +126,7 @@ jobs:
 
       - name: Push image to GHCR
         uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name != 'pull_request'
         id: push
         env:
           REGISTRY_USER: ${{ github.actor }}
@@ -135,10 +140,10 @@ jobs:
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name != 'pull_request'
 
       - name: Sign image
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name != 'pull_request'
         run: |
           IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
           for tag in ${{ steps.metadata.outputs.tags }}; do
